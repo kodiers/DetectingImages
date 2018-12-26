@@ -20,23 +20,21 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         // Set the view's delegate
         sceneView.delegate = self
         
-        // Show statistics such as fps and timing information
-        sceneView.showsStatistics = true
-        
-        // Create a new scene
-        let scene = SCNScene(named: "art.scnassets/ship.scn")!
-        
-        // Set the scene to the view
-        sceneView.scene = scene
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
         // Create a session configuration
-        let configuration = ARWorldTrackingConfiguration()
-
-        // Run the view's session
+        let configuration = ARImageTrackingConfiguration()
+        guard let trackingImages = ARReferenceImage.referenceImages(inGroupNamed: "Numbers", bundle: nil) else {
+            fatalError("Could not load images")
+        }
+        // tell ARKit to track this images
+        configuration.trackingImages = trackingImages
+        // tracks 2 images
+        configuration.maximumNumberOfTrackedImages = 2
+        // run configuration
         sceneView.session.run(configuration)
     }
     
@@ -58,18 +56,22 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     }
 */
     
-    func session(_ session: ARSession, didFailWithError error: Error) {
-        // Present an error message to the user
-        
+    func renderer(_ renderer: SCNSceneRenderer, nodeFor anchor: ARAnchor) -> SCNNode? {
+        // make sure this is an image anchor
+        guard let imageAnchor = anchor as? ARImageAnchor else {
+            return nil
+        }
+        // create a plane at the exact width and height of our image
+        let plane = SCNPlane(width: imageAnchor.referenceImage.physicalSize.width, height: imageAnchor.referenceImage.physicalSize.height)
+        // make the plane have a transparent blue color
+        plane.firstMaterial?.diffuse.contents = UIColor.blue.withAlphaComponent(0.5)
+        // wrap plane in a node and rotate it so it's facing us
+        let planeNode = SCNNode(geometry: plane)
+        planeNode.eulerAngles.x = -.pi / 2
+        // wrap it in another node and send it back
+        let node = SCNNode()
+        node.addChildNode(planeNode)
+        return node
     }
     
-    func sessionWasInterrupted(_ session: ARSession) {
-        // Inform the user that the session has been interrupted, for example, by presenting an overlay
-        
-    }
-    
-    func sessionInterruptionEnded(_ session: ARSession) {
-        // Reset tracking and/or remove existing anchors if consistent tracking is required
-        
-    }
 }
